@@ -54,12 +54,15 @@ class Database(object):
         self.root.fullpath = "/"
 
     def Get(self, path):
+        if path == '/':
+            return self.root
         parts = path.split('/')
         cdir = self.root
         for p in parts:
-            cdir = cdir.GetChild(p)
-            if cdir == None:
-                return None
+            if p != "":
+                cdir = cdir.GetChild(p)
+                if cdir == None:
+                    return None
         return cdir
 
     def EnsurePath(self, path):
