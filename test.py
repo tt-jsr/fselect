@@ -47,6 +47,12 @@ while True:
     elif c == ord('j'):
         filewin.ScrollUp(1)
         filewin.Refresh()
+    elif c == ord(' '):
+        o = filewin.GetCurrent()
+        if isinstance(o, fsapi.File):
+            o.tagSelected = True
+        filewin.LineDown(1)
+        filewin.Refresh()
     elif c == ord('k'):
         filewin.ScrollDown(1)
         filewin.Refresh()
