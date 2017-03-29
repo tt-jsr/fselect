@@ -8,6 +8,12 @@ class Dir(object):
         self.tags = []
         self.children = [] # File or Dir objects
 
+    def IsDir(self):
+        return True
+
+    def IsFile(self):
+        return False
+
     def Save(self, f):
         s = "d|"
         if len(self.tags) > 0:
@@ -20,7 +26,8 @@ class Dir(object):
 
     def Load(self, line):
         parts = line.split('|')
-        self.tags = parts[1].split(',')
+        if parts[1] != "":
+            self.tags = parts[1].split(',')
         self.name = parts[2]
         self.fullname = parts[3]
 
@@ -63,6 +70,12 @@ class File(object):
         self.tags = []
         self.tagSelected = False
 
+    def IsDir(self):
+        return False
+
+    def IsFile(self):
+        return True
+
     def Save(self, f):
         s = "f|"
         if len(self.tags) > 0:
@@ -75,7 +88,8 @@ class File(object):
 
     def Load(self, line):
         parts = line.split('|')
-        self.tags = parts[1].split(',')
+        if parts[1] != "":
+            self.tags = parts[1].split(',')
         self.name = parts[2]
         self.fullname = parts[3]
 
@@ -125,13 +139,14 @@ class Database(object):
     def Load(self, path):
         f = open(path, "r")
         for line in f:
+            line = line[:-1]    # Get rid of '\n'
             if line[0] == 'd':
                 obj = Dir("")
             else:
                 obj = File("")
-            print line
             obj.Load(line)
-            parent = self.EnsurePath(obj.fullname)
+            head, _ = os.path.split(obj.fullname)
+            parent = self.EnsurePath(head)
             parent.AddChild(obj)
 
     def Get(self, path):
@@ -187,9 +202,10 @@ class Database(object):
                 cdir.AddChild(File(f))
 
     def _walk(self, d, f):
-        d.Save(f)
+        if d.fullpath != "/":
+            d.Save(f)
         for child in d.children:
-            if isinstance(child, Dir):
+            if child.IsDir():
                 self._walk(child, f)
             else:
                 child.Save(f)

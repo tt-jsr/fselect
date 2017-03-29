@@ -50,6 +50,8 @@ def Run(stdscrn):
     tagwin.AddObject(fsapi.Tag("cme"))
     tagwin.Refresh()
 
+    currentTagObj = tagwin.GetCurrent()
+
     curses.init_pair(curses.COLOR_GREEN, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(curses.COLOR_BLUE, curses.COLOR_BLUE, curses.COLOR_BLACK)
     curses.init_pair(curses.COLOR_YELLOW, curses.COLOR_YELLOW, curses.COLOR_BLACK)
@@ -62,9 +64,13 @@ def Run(stdscrn):
     filesysSave = None
     tagSave = None
 
-    currentTagObj = tagwin.GetCurrent()
     while True:
         c = filewin.win.getch()
+        if c == ord('Q'):
+           o = filewin.GetCurrent()
+           if o:
+                selectedFilename = o.fullpath
+           return
         if c == KEY_QUIT:
            o = filewin.GetCurrent()
            selectedFilename = o.fullpath
@@ -169,12 +175,12 @@ def FileSystemCommand(c):
         dir = filewin.GetDir()
         if dir:
             for o in dir.children:
-                if isinstance(o, fsapi.File) and o.tagSelected:
+                if o.IsFile() and o.tagSelected:
                     parent = tagdb.EnsurePath(dir.fullpath)
                     parent.AddChild(fsapi.File(o.name))
     elif c == KEY_SELECT:
         o = filewin.GetCurrent()
-        if isinstance(o, fsapi.File):
+        if o.IsFile():
             if o.tagSelected:
                 o.tagSelected = False
             else:
@@ -184,7 +190,7 @@ def FileSystemCommand(c):
     elif c == KEY_DOWN_DIR:
         o = filewin.GetCurrent()
         if o:
-            if isinstance(o, fsapi.Dir):
+            if o.IsDir():
                 ReadDir(o.fullpath)
     elif c == KEY_UP_DIR:
         o = filewin.GetCurrent()
@@ -207,7 +213,7 @@ def TagCommand(c):
                 o.AddTag(tabobj.name)
     elif c == KEY_SELECT:
         o = filewin.GetCurrent()
-        if isinstance(o, fsapi.File):
+        if o and o.IsFile():
             if o.tagSelected:
                 o.tagSelected = False
             else:
@@ -217,19 +223,18 @@ def TagCommand(c):
     elif c == KEY_DOWN_DIR:
         o = filewin.GetCurrent()
         tagobj = tagwin.GetCurrent()
-        if o:
-            if isinstance(o, fsapi.Dir):
-                cdir = o
-                filewin.Clear()
-                statuswin.CurrentPath(cdir.fullpath)
-                for child in cdir.children:
-                    if tagobj.Accept(child):
-                        filewin.AddObject(child)
-                filewin.Refresh()
+        if o and o.IsDir():
+            cdir = o
+            filewin.Clear()
+            statuswin.CurrentPath(cdir.fullpath)
+            for child in cdir.children:
+                if tagobj.Accept(child):
+                    filewin.AddObject(child)
+            filewin.Refresh()
     elif c == KEY_UP_DIR:
         cdir = filewin.GetDir()
         tagobj = tagwin.GetCurrent()
-        if cdir.parentdir:
+        if cdir and cdir.parentdir:
             cdir = cdir.parentdir
             filewin.Clear()
             statuswin.CurrentPath(cdir.fullpath)

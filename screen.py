@@ -66,22 +66,21 @@ class FileWindow(object):
 
     def ClearSelections(self):
         for o in self.objects:
-            if isinstance(o, fsapi.File):
+            if o.IsFile():
                 o.tagSelected = False
 
     def SelectAll(self):
         for o in self.objects:
-            if isinstance(o, fsapi.File):
+            if o.IsFile():
                 o.tagSelected = True
 
     def ReverseSelections(self):
         for o in self.objects:
-            if isinstance(o, fsapi.File):
+            if o.IsFile():
                 if o.tagSelected:
                     o.tagSelected = False
                 else:
                     o.tagSelected = True
-
 
     def LineUp(self, n):
         if self.currentObject <= 0:
@@ -122,7 +121,9 @@ class FileWindow(object):
 
     def GetDir(self):
         c = self.GetCurrent()
-        return c.parentdir
+        if c:
+            return c.parentdir
+        return None
 
     def GetCurrent(self):
         if self.currentObject < 0:
@@ -130,7 +131,7 @@ class FileWindow(object):
         return self.objects[self.currentObject]
 
     def AddObject(self, obj):
-        if isinstance(obj, fsapi.File):
+        if obj.IsFile():
             obj.tagSelected = False
         self.objects.append(obj)
         if self.firstObject < 0:
@@ -177,7 +178,7 @@ class FileWindow(object):
         assert (self.lastObject-self.firstObject) < self.height
 
     def _drawLine(self, y, obj, attr):
-        if isinstance(obj, fsapi.Dir):
+        if obj.IsDir():
             self.win.addstr(y, 0, "d {}".format(obj.name), attr | curses.color_pair(curses.COLOR_GREEN))
         else:
             if obj.tagSelected:
@@ -428,7 +429,6 @@ def layout(screen, status_height, tag_width):
     fw.win.keypad(1)
 
     return (fw, tw, sw)
-
 
 
 
