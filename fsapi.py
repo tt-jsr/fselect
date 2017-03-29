@@ -1,5 +1,14 @@
 import os
 
+def IsTag(o):
+    return isinstance(o, Tag)
+
+def IsFile(o):
+    return isinstance(o, File)
+
+def IsDir(o):
+    return isinstance(o, Dir)
+
 class Dir(object):
     def __init__(self, n):
         self.parentdir = None  # Dir object
@@ -7,12 +16,6 @@ class Dir(object):
         self.fullpath = None
         self.tags = []
         self.children = [] # File or Dir objects
-
-    def IsDir(self):
-        return True
-
-    def IsFile(self):
-        return False
 
     def Save(self, f):
         s = "d|"
@@ -69,12 +72,6 @@ class File(object):
         self.fullpath = None
         self.tags = []
         self.tagSelected = False
-
-    def IsDir(self):
-        return False
-
-    def IsFile(self):
-        return True
 
     def Save(self, f):
         s = "f|"

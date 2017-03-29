@@ -175,12 +175,12 @@ def FileSystemCommand(c):
         dir = filewin.GetDir()
         if dir:
             for o in dir.children:
-                if o.IsFile() and o.tagSelected:
+                if fsapi.IsFile(o) and o.tagSelected:
                     parent = tagdb.EnsurePath(dir.fullpath)
                     parent.AddChild(fsapi.File(o.name))
     elif c == KEY_SELECT:
         o = filewin.GetCurrent()
-        if o.IsFile():
+        if fsapi.IsFile(o):
             if o.tagSelected:
                 o.tagSelected = False
             else:
@@ -190,7 +190,7 @@ def FileSystemCommand(c):
     elif c == KEY_DOWN_DIR:
         o = filewin.GetCurrent()
         if o:
-            if o.IsDir():
+            if fsapi.IsDir(o):
                 ReadDir(o.fullpath)
     elif c == KEY_UP_DIR:
         o = filewin.GetCurrent()
@@ -213,7 +213,7 @@ def TagCommand(c):
                 o.AddTag(tabobj.name)
     elif c == KEY_SELECT:
         o = filewin.GetCurrent()
-        if o and o.IsFile():
+        if o and fsapi.IsFile(o):
             if o.tagSelected:
                 o.tagSelected = False
             else:
@@ -223,7 +223,7 @@ def TagCommand(c):
     elif c == KEY_DOWN_DIR:
         o = filewin.GetCurrent()
         tagobj = tagwin.GetCurrent()
-        if o and o.IsDir():
+        if o and fsapi.IsDir(o):
             cdir = o
             filewin.Clear()
             statuswin.CurrentPath(cdir.fullpath)

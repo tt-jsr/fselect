@@ -31,6 +31,7 @@ class FileWindow(object):
         self.firstObject = -1      # Index into self.objects
         self.lastObject = -1   # Index into self.objects
         self.objects = []
+        self.basicNav = BasicNavigation()
 
     def Save(self, cont):
         cont.objects = self.objects
@@ -51,73 +52,37 @@ class FileWindow(object):
         self.win.clear()
 
     def Clear(self):
-        self.objects = []
-        self.firstObject = -1
-        self.lastObject = -1
-        self.currentObject = -1
-        self.win.clear()
-        self.redraw = True
+        self.basicNav.Clear(self)
 
     def PageUp(self):
-        self.LineUp(self.height-1)
+        self.basicNav.LineUp(self, self.height-1)
 
     def PageDown(self):
-        self.LineDown(self.height-1)
+        self.basicNav.LineDown(self, self.height-1)
 
     def ClearSelections(self):
         for o in self.objects:
-            if o.IsFile():
+            if fsapi.IsFile(o):
                 o.tagSelected = False
 
     def SelectAll(self):
         for o in self.objects:
-            if o.IsFile():
+            if fsapi.IsFile(o):
                 o.tagSelected = True
 
     def ReverseSelections(self):
         for o in self.objects:
-            if o.IsFile():
+            if fsapi.IsFile(o):
                 if o.tagSelected:
                     o.tagSelected = False
                 else:
                     o.tagSelected = True
 
     def LineUp(self, n):
-        if self.currentObject <= 0:
-            return
-        y = self.currentObject - self.firstObject
-        self._drawLine(y, self.objects[self.currentObject], 0)
-        while n:
-            if self.currentObject == self.firstObject:
-                self.ScrollUp(1)
-                self.currentObject = self.firstObject
-            else:
-                self.currentObject -= 1
-            n -= 1
-        y = self.currentObject - self.firstObject
-        assert self.currentObject <= self.lastObject
-        assert self.currentObject >= self.firstObject
-        assert y < self.height
-        self._drawLine(y, self.objects[self.currentObject], curses.A_UNDERLINE)
+        self.basicNav.LineUp(self, n)
 
     def LineDown(self, n):
-        if self.currentObject == len(self.objects) - 1:
-            return
-        y = self.currentObject - self.firstObject
-        self._drawLine(y, self.objects[self.currentObject], 0)
-        while n:
-            if self.currentObject == self.lastObject:
-                self.ScrollDown(1)
-                self.currentObject = self.lastObject
-            else:
-                self.currentObject += 1
-            n -= 1
-        y = self.currentObject - self.firstObject
-        assert self.currentObject <= self.lastObject
-        assert self.currentObject >= self.firstObject
-        assert (self.lastObject-self.firstObject) < self.height
-        assert y < self.height
-        self._drawLine(y, self.objects[self.currentObject], curses.A_UNDERLINE)
+        self.basicNav.LineDown(self, n)
 
     def GetDir(self):
         c = self.GetCurrent()
@@ -126,79 +91,28 @@ class FileWindow(object):
         return None
 
     def GetCurrent(self):
-        if self.currentObject < 0:
-            return None
-        return self.objects[self.currentObject]
+        return self.basicNav.GetCurrent(self)
 
     def AddObject(self, obj):
-        if obj.IsFile():
-            obj.tagSelected = False
-        self.objects.append(obj)
-        if self.firstObject < 0:
-            self.firstObject = 0
-            self.currentObject = 0
-        if self.lastObject < (self.height-1):
-            self.lastObject += 1
+        self.basicNav.AddObject(self, obj)
 
     def Refresh(self):
-        assert (self.lastObject-self.firstObject) < self.height
-        if self.redraw:
-            self._redraw()
-            self.redraw = False
-        self.win.refresh()
+        self.basicNav.Refresh(self)
 
     def ScrollDown(self, n):
-        if len(self.objects) < self.height:
-            return
-        self.redraw = True
-        while n:
-            if self.lastObject == len(self.objects)-1:
-                return
-            self.firstObject += 1
-            self.lastObject += 1
-            n -= 1
-        if self.currentObject < self.firstObject:
-            self.currentObject = self.firstObject
-        if self.currentObject > self.lastObject:
-            self.currentObject = self.lastObject
-        assert (self.lastObject-self.firstObject) < self.height
+        self.basicNav,ScrollDown(self, n)
 
     def ScrollUp(self, n):
-        self.redraw = True
-        while n:
-            if self.firstObject == 0:
-                return
-            self.firstObject -= 1
-            self.lastObject -= 1
-            n -= 1
-        if self.currentObject < self.firstObject:
-            self.currentObject = self.firstObject
-        if self.currentObject > self.lastObject:
-            self.currentObject = self.lastObject
-        assert (self.lastObject-self.firstObject) < self.height
+        self.basicNav,ScrollUp(self, n)
 
     def _drawLine(self, y, obj, attr):
-        if obj.IsDir():
+        if fsapi.IsDir(obj):
             self.win.addstr(y, 0, "d {}".format(obj.name), attr | curses.color_pair(curses.COLOR_GREEN))
         else:
             if obj.tagSelected:
                 self.win.addstr(y, 0, "* {}".format(obj.name), attr | curses.color_pair(curses.COLOR_YELLOW))
             else:
                 self.win.addstr(y, 0, "  {}".format(obj.name), attr | curses.color_pair(curses.COLOR_BLUE))
-
-    def _redraw(self):
-        self.win.move(0, 0)
-        y = 0
-        self.win.clear()
-        if len(self.objects) == 0:
-            return
-        for idx in range(self.firstObject, self.lastObject+1):
-            o = self.objects[idx]
-            if idx == self.currentObject:
-                self._drawLine(y, o, curses.A_UNDERLINE)
-            else:
-                self._drawLine(y, o, 0)
-            y += 1
 
 #####################################################################
 class TagWindow(object):
@@ -213,124 +127,40 @@ class TagWindow(object):
         self.lastObject = -1
         self.currentObject = -1
         self.redraw = True
+        self.basicNav = BasicNavigation()
 
     def Clear(self):
-        self.objects = []
-        self.firstObject = -1
-        self.lastObject = -1
-        self.currentObject = -1
-        self.win.clear()
-        self.redraw = True
+        self.basicNav.Clear(self)
 
     def PageUp(self):
-        self.LineUp(self.height-1)
+        self.basicNav.LineUp(self, self.height-1)
 
     def PageDown(self):
-        self.LineDown(self.height-1)
-
+        self.basicNav.LineDown(self, self.height-1)
     def LineUp(self, n):
-        if self.currentObject <= 0:
-            return
-        y = self.currentObject - self.firstObject
-        self._drawLine(y, self.objects[self.currentObject], 0)
-        while n:
-            if self.currentObject == self.firstObject:
-                self.ScrollUp(1)
-                self.currentObject = self.firstObject
-            else:
-                self.currentObject -= 1
-            n -= 1
-        y = self.currentObject - self.firstObject
-        assert self.currentObject <= self.lastObject
-        assert self.currentObject >= self.firstObject
-        assert y < self.height
-        self._drawLine(y, self.objects[self.currentObject], curses.A_UNDERLINE)
+        self.basicNav.LineUp(self, n)
 
     def LineDown(self, n):
-        if self.currentObject == len(self.objects) - 1:
-            return
-        y = self.currentObject - self.firstObject
-        self._drawLine(y, self.objects[self.currentObject], 0)
-        while n:
-            if self.currentObject == self.lastObject:
-                self.ScrollDown(1)
-                self.currentObject = self.lastObject
-            else:
-                self.currentObject += 1
-            n -= 1
-        y = self.currentObject - self.firstObject
-        assert self.currentObject <= self.lastObject
-        assert self.currentObject >= self.firstObject
-        assert (self.lastObject-self.firstObject) < self.height
-        assert y < self.height
-        self._drawLine(y, self.objects[self.currentObject], curses.A_UNDERLINE)
+        self.basicNav.LineDown(self, n)
 
     def GetCurrent(self):
-        if self.currentObject < 0:
-            return None
-        return self.objects[self.currentObject]
+        return self.basicNav.GetCurrent(self)
 
     def AddObject(self, obj):
-        self.objects.append(obj)
-        if self.firstObject < 0:
-            self.firstObject = 0
-            self.currentObject = 0
-        if self.lastObject < (self.height-1):
-            self.lastObject += 1
+        self.basicNav.AddObject(self, obj)
 
     def Refresh(self):
-        assert (self.lastObject-self.firstObject) < self.height
-        if self.redraw:
-            self._redraw()
-            self.redraw = False
-        self.win.refresh()
+        self.basicNav.Refresh(self)
 
     def ScrollDown(self, n):
-        if len(self.objects) < self.height:
-            return
-        self.redraw = True
-        while n:
-            if self.lastObject == len(self.objects)-1:
-                return
-            self.firstObject += 1
-            self.lastObject += 1
-            n -= 1
-        if self.currentObject < self.firstObject:
-            self.currentObject = self.firstObject
-        if self.currentObject > self.lastObject:
-            self.currentObject = self.lastObject
-        assert (self.lastObject-self.firstObject) < self.height
+        self.basicNav,ScrollDown(self, n)
 
     def ScrollUp(self, n):
-        self.redraw = True
-        while n:
-            if self.firstObject == 0:
-                return
-            self.firstObject -= 1
-            self.lastObject -= 1
-            n -= 1
-        if self.currentObject < self.firstObject:
-            self.currentObject = self.firstObject
-        if self.currentObject > self.lastObject:
-            self.currentObject = self.lastObject
-        assert (self.lastObject-self.firstObject) < self.height
+        self.basicNav,ScrollUp(self, n)
 
     def _drawLine(self, y, obj, attr):
         self.win.addstr(y, 0, "{}".format(obj.name), attr | curses.color_pair(curses.COLOR_GREEN))
 
-    def _redraw(self):
-        self.win.move(0, 0)
-        y = 0
-        self.win.clear()
-        if len(self.objects) == 0:
-            return
-        for idx in range(self.firstObject, self.lastObject+1):
-            o = self.objects[idx]
-            if idx == self.currentObject:
-                self._drawLine(y, o, curses.A_UNDERLINE)
-            else:
-                self._drawLine(y, o, 0)
-            y += 1
 #####################################################################
 class StatusWindow(object):
     def __init__(self):
@@ -431,4 +261,123 @@ def layout(screen, status_height, tag_width):
     return (fw, tw, sw)
 
 
+################################################################################3
+class BasicNavigation(object):
+    def __init__(self):
+        pass
 
+    def Clear(self, win):
+        win.objects = []
+        win.firstObject = -1
+        win.lastObject = -1
+        win.currentObject = -1
+        win.win.clear()
+        win.redraw = True
+
+    def PageUp(self, win):
+        self.LineUp(win, win.height-1)
+
+    def PageDown(self, win):
+        self.LineDown(win, win.height-1)
+
+    def LineUp(self, win, n):
+        if win.currentObject <= 0:
+            return
+        y = win.currentObject - win.firstObject
+        win._drawLine(y, win.objects[win.currentObject], 0)
+        while n:
+            if win.currentObject == win.firstObject:
+                win.ScrollUp(1)
+                win.currentObject = win.firstObject
+            else:
+                win.currentObject -= 1
+            n -= 1
+        y = win.currentObject - win.firstObject
+        assert win.currentObject <= win.lastObject
+        assert win.currentObject >= win.firstObject
+        assert y < win.height
+        win._drawLine(y, win.objects[win.currentObject], curses.A_UNDERLINE)
+
+    def LineDown(self, win, n):
+        if win.currentObject == len(win.objects) - 1:
+            return
+        y = win.currentObject - win.firstObject
+        win._drawLine(y, win.objects[win.currentObject], 0)
+        while n:
+            if win.currentObject == win.lastObject:
+                self.ScrollDown(win, 1)
+                win.currentObject = win.lastObject
+            else:
+                win.currentObject += 1
+            n -= 1
+        y = win.currentObject - win.firstObject
+        assert win.currentObject <= win.lastObject
+        assert win.currentObject >= win.firstObject
+        assert (win.lastObject-win.firstObject) < win.height
+        assert y < win.height
+        win._drawLine(y, win.objects[win.currentObject], curses.A_UNDERLINE)
+
+    def GetCurrent(self, win):
+        if win.currentObject < 0:
+            return None
+        return win.objects[win.currentObject]
+
+    def AddObject(self, win, obj):
+        obj.tagSelected = False
+        win.objects.append(obj)
+        if win.firstObject < 0:
+            win.firstObject = 0
+            win.currentObject = 0
+        if win.lastObject < (win.height-1):
+            win.lastObject += 1
+
+    def Refresh(self, win):
+        assert (win.lastObject-win.firstObject) < win.height
+        if win.redraw:
+            self._redraw(win)
+            win.redraw = False
+        win.win.refresh()
+
+    def ScrollDown(self, win, n):
+        if len(win.objects) < win.height:
+            return
+        win.redraw = True
+        while n:
+            if win.lastObject == len(win.objects)-1:
+                return
+            win.firstObject += 1
+            win.lastObject += 1
+            n -= 1
+        if win.currentObject < win.firstObject:
+            win.currentObject = win.firstObject
+        if win.currentObject > win.lastObject:
+            win.currentObject = win.lastObject
+        assert (win.lastObject-win.firstObject) < win.height
+
+    def ScrollUp(self, win, n):
+        win.redraw = True
+        while n:
+            if win.firstObject == 0:
+                return
+            win.firstObject -= 1
+            win.lastObject -= 1
+            n -= 1
+        if win.currentObject < win.firstObject:
+            win.currentObject = win.firstObject
+        if win.currentObject > win.lastObject:
+            win.currentObject = win.lastObject
+        assert (win.lastObject-win.firstObject) < win.height
+
+    def _redraw(self, win):
+        win.win.move(0, 0)
+        y = 0
+        win.win.clear()
+        if len(win.objects) == 0:
+            return
+        for idx in range(win.firstObject, win.lastObject+1):
+            o = win.objects[idx]
+            if idx == win.currentObject:
+                win._drawLine(y, o, curses.A_UNDERLINE)
+            else:
+                win._drawLine(y, o, 0)
+            y += 1
