@@ -59,7 +59,7 @@ class Dir(object):
         if self.HasTag(name) == False:
             self.tags.append(name);
             if self.parentdir:
-                self.parentDir.AddTag(name);
+                self.parentdir.AddTag(name);
 
     def __repr__(self):
         return "Dir:{},{}".format(self.name, self.fullpath)
@@ -71,7 +71,7 @@ class File(object):
         self.name = n
         self.fullpath = None
         self.tags = []
-        self.tagSelected = False
+        self.selected = False
 
     def Save(self, f):
         s = "f|"
@@ -99,7 +99,7 @@ class File(object):
         if self.HasTag(name) == False:
             self.tags.append(name);
             if self.parentdir:
-                self.parentDir.AddTag(name);
+                self.parentdir.AddTag(name);
 
     def __repr__(self):
         return "File:{},{},{}".format(self.name, self.fullpath, self.tags)
@@ -108,6 +108,17 @@ class File(object):
 class Tag(object):
     def __init__(self, n):
         self.name = n
+        self.defaultDir = ""
+        self.selected = False
+
+    def Save(self, f):
+        s = "{}|{}\n".format(self.name, self.defaultDir)
+        f.write(s)
+
+    def Load(self, line):
+        parts = line.split('|')
+        self.name = parts[0]
+        self.defaultDir = parts[1]
 
     def Accept(self, obj):
         if self.name == '*':
@@ -129,12 +140,10 @@ class Database(object):
         self.root = Dir("/")
         self.root.fullpath = "/"
 
-    def Save(self, path):
-        f = open(path, "w")
+    def Save(self, f):
         self._walk(self.root, f)
 
-    def Load(self, path):
-        f = open(path, "r")
+    def Load(self, f):
         for line in f:
             line = line[:-1]    # Get rid of '\n'
             if line[0] == 'd':
@@ -145,6 +154,9 @@ class Database(object):
             head, _ = os.path.split(obj.fullname)
             parent = self.EnsurePath(head)
             parent.AddChild(obj)
+
+    def GetTags(self):
+        return self.tags
 
     def Get(self, path):
         if path == '/':
@@ -202,7 +214,7 @@ class Database(object):
         if d.fullpath != "/":
             d.Save(f)
         for child in d.children:
-            if child.IsDir():
+            if IsDir(child):
                 self._walk(child, f)
             else:
                 child.Save(f)
