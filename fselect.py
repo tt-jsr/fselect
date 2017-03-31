@@ -419,7 +419,21 @@ class Main(object):
             self.tagwin.Refresh(True)
 
 if __name__ == "__main__":
+    useTempFile = None
+    argc = 0
+    while argc < len(sys.argv):
+        arg = sys.argv[argc]
+        if arg == "--usefile":
+            argc += 1
+            useTempFile = sys.argv[argc]
+        argc += 1
+
     m = Main()
     curses.wrapper(m.Start)
     if m.selectedFilename:
-        print m.selectedFilename
+        if useTempFile:
+            f  = open(useTempFile, "w")
+            f.write(m.selectedFilename + "\n")
+            f.close()
+        else:
+            print m.selectedFilename
