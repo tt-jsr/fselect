@@ -44,6 +44,12 @@ class Dir(object):
             o.fullpath = "/" + o.name
         self.children.append(o)
 
+        # The root directory contains a dictionary of all files
+        p = self
+        while p.parentdir:
+            p = p.parentdir
+        p.files[o.fullpath] = o
+
     def GetChild(self, name):
         for c in self.children:
             if c.name == name:
@@ -110,6 +116,7 @@ class Tag(object):
         self.name = n
         self.defaultDir = ""
         self.selected = False
+        self.lastSeenPath = None
 
     def Save(self, f):
         s = "{}|{}\n".format(self.name, self.defaultDir)
@@ -135,6 +142,7 @@ class Database(object):
     def __init__(self):
         self.root = Dir("/")
         self.root.fullpath = "/"
+        self.root.files = {}
 
     def Clear(self):
         self.root = Dir("/")
@@ -155,8 +163,10 @@ class Database(object):
             parent = self.EnsurePath(head)
             parent.AddChild(obj)
 
-    def GetTags(self):
-        return self.tags
+    def GetTags(self, path):
+        if self.root.files.has_key(path):
+            return self.root.files[path].tags
+        return None
 
     def Get(self, path):
         if path == '/':

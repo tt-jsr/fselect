@@ -51,6 +51,8 @@ class FileWindow(object):
         self.objects = []
         self.basicNav = BasicNavigation()
         self.selectionChanged = None
+        self.selectionPreChanged = None
+        self.database = None
 
     def Save(self, cont):
         cont.objects = self.objects
@@ -69,6 +71,11 @@ class FileWindow(object):
             self.currentObject = self.lastObject
         self.redraw = True
         self.win.clear()
+
+    def SetCursorToCurrent(self):
+        y = self.currentObject - self.firstObject
+        assert y >= 0
+        self.win.move(y, 0)
 
     def Find(self, pattern):
         return self._findImpl(pattern, 0)
@@ -139,6 +146,7 @@ class FileWindow(object):
         if self.redraw == False:
             self.redraw = redraw
         self.basicNav.Refresh(self)
+        self.SetCursorToCurrent()
 
     def ScrollDown(self, n):
         self.basicNav.ScrollDown(self, n)
@@ -147,6 +155,13 @@ class FileWindow(object):
         self.basicNav.ScrollUp(self, n)
 
     def _drawLine(self, y, obj, attr):
+        taglist = self.database.GetTags(obj.fullpath)
+        tags = "";
+        if taglist:
+            tags = " : "
+            for t in taglist:
+                tags += t + ","
+            tags = tags[:-1]
         if fsapi.IsDir(obj):
             self.win.addstr(y, 0, "d {}".format(obj.name), attr | curses.color_pair(curses.COLOR_GREEN))
         else:
@@ -154,6 +169,7 @@ class FileWindow(object):
                 self.win.addstr(y, 0, "* {}".format(obj.name), attr | curses.color_pair(curses.COLOR_YELLOW))
             else:
                 self.win.addstr(y, 0, "  {}".format(obj.name), attr | curses.color_pair(curses.COLOR_BLUE))
+        self.win.addstr(tags, curses.color_pair(curses.COLOR_MAGENTA))
 
     def _findImpl(self, pattern, startidx):
         if not '*' in pattern or '?' in pattern:
@@ -186,18 +202,28 @@ class TagWindow(object):
         self.redraw = True
         self.basicNav = BasicNavigation()
         self.selectionChanged = None
+        self.selectionPreChanged = None
 
     def RegisterSelectionChangedEvent(self, f):
         self.selectionChanged = f
 
+    def RegisterSelectionPreChangedEvent(self, f):
+        self.selectionPreChanged = f
+
     def Clear(self):
         self.basicNav.Clear(self)
+
+    def SetCursorToCurrent(self):
+        y = self.currentObject - self.firstObject
+        assert y >= 0
+        self.win.move(y, 0)
 
     def PageUp(self):
         self.basicNav.LineUp(self, self.height-1)
 
     def PageDown(self):
         self.basicNav.LineDown(self, self.height-1)
+
     def LineUp(self, n):
         self.basicNav.LineUp(self, n)
 
@@ -220,6 +246,7 @@ class TagWindow(object):
         if self.redraw == False:
             self.redraw = redraw
         self.basicNav.Refresh(self)
+        self.SetCursorToCurrent()
 
     def ScrollDown(self, n):
         self.basicNav,ScrollDown(self, n)
@@ -368,6 +395,7 @@ def layout(screen, status_height, tag_width):
     screen.win.addch(screen.statussep_y, screen.tagsep_x, curses.ACS_BTEE)
     screen.win.refresh()
     fw.win.keypad(1)
+    tw.win.keypad(1)
 
     return (fw, tw, sw)
 
@@ -394,6 +422,8 @@ class BasicNavigation(object):
     def LineUp(self, win, n):
         if win.currentObject <= 0:
             return
+        if win.selectionPreChanged:
+            win.selectionPreChanged()
         y = win.currentObject - win.firstObject
         win._drawLine(y, win.objects[win.currentObject], 0)
         while n:
@@ -414,6 +444,8 @@ class BasicNavigation(object):
     def LineDown(self, win, n):
         if win.currentObject == len(win.objects) - 1:
             return
+        if win.selectionPreChanged:
+            win.selectionPreChanged()
         y = win.currentObject - win.firstObject
         win._drawLine(y, win.objects[win.currentObject], 0)
         while n:

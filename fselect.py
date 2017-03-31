@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import sys
 import fsapi
 import screen
@@ -6,13 +7,14 @@ import curses
 import curses.ascii
 
 KEY_QUIT = ord('q')
-KEY_SCROLL_UP = ord('j')
+KEY_QUIT_NO_SAVE = ord('Q')
+KEY_SCROLL_UP = 5  # ctrl-E
 KEY_SELECT = ord(' ')
-KEY_SCROLL_DOWN = ord('k')
+KEY_SCROLL_DOWN = 25  # ctrl-Y
 KEY_LINE_UP = curses.KEY_UP
 KEY_LINE_DOWN = curses.KEY_DOWN
-KEY_HALF_DOWN = ord('u')
-KEY_HALF_UP = ord('d')
+KEY_HALF_DOWN = 21  # ctrl-U
+KEY_HALF_UP = 4 # ctrl-D
 KEY_PAGE_UP = curses.KEY_NPAGE
 KEY_PAGE_DOWN = curses.KEY_PPAGE
 KEY_DOWN_DIR = curses.KEY_RIGHT
@@ -45,6 +47,18 @@ class Main(object):
         self.filesysSave = None
         self.tagSave = None
 
+    def GetKey(self):
+        # Most keys are defined in terms of the input character, but we have support
+        # for multiple inputs mapped to the same key code
+        ch = self.currentWindow.win.getch()
+        if ch == 10:
+            return KEY_DOWN_DIR
+        if ch == ord('j'):
+            return KEY_LINE_DOWN
+        if ch == ord('k'):
+            return KEY_LINE_UP
+        return ch
+
     def Start(self, stdscrn):
         self.scrn = screen.Screen()
         self.scrn.win = stdscrn
@@ -54,15 +68,26 @@ class Main(object):
         curses.init_pair(curses.COLOR_BLUE, curses.COLOR_BLUE, curses.COLOR_BLACK)
         curses.init_pair(curses.COLOR_YELLOW, curses.COLOR_YELLOW, curses.COLOR_BLACK)
         curses.init_pair(curses.COLOR_RED, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(curses.COLOR_MAGENTA, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
 
+        self.filewin.database = self.tagdb
         self.Run()
+
+    def OnTagPreChange(self):
+        tobj = self.tagwin.GetCurrent()
+        fobj = self.filewin.GetDir()
+        if fobj:
+            tobj.lastSeenPath = fobj.fullpath
 
     def OnTagChange(self):
         obj = self.tagwin.GetCurrent()
         path = '/'
         if obj.defaultDir != None and obj.defaultDir != "":
             path = obj.defaultDir
-        self.LoadTaggedFilesIntoFileWindow(path)
+        if obj.lastSeenPath:
+            self.LoadTaggedFilesIntoFileWindow(obj.lastSeenPath)
+        else:
+            self.LoadTaggedFilesIntoFileWindow(path)
 
     def Save(self):
        dbfile = open("/home/jeff/.config/fselect/fselect.dat", "w")
@@ -92,6 +117,7 @@ class Main(object):
         self.Load()
         self.tagwin.Refresh()
         self.tagwin.RegisterSelectionChangedEvent(self.OnTagChange)
+        self.tagwin.RegisterSelectionPreChangedEvent(self.OnTagPreChange)
 
         self.LoadTaggedFilesIntoFileWindow("/")
         self.statuswin.CurrentMode("Tag browse")
@@ -100,8 +126,8 @@ class Main(object):
         self.scrn.SetFocus(WINDOW_FILES)
 
         while True:
-            c = self.filewin.win.getch()
-            if c == ord('Q'):
+            c = self.GetKey()
+            if c == KEY_QUIT_NO_SAVE:
                o = self.filewin.GetCurrent()
                if o:
                     self.selectedFilename = o.fullpath
@@ -132,9 +158,11 @@ class Main(object):
         if self.currentWindow == self.filewin:
             self.currentWindow = self.tagwin
             self.scrn.SetFocus(WINDOW_TAGS)
+            self.tagwin.SetCursorToCurrent()
         else:
             self.currentWindow = self.filewin
             self.scrn.SetFocus(WINDOW_FILES)
+            self.filewin.SetCursorToCurrent()
 
     def SwitchMode(self):
         path = '/'
