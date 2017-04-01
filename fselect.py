@@ -26,6 +26,9 @@ KEY_TAG_MENU = ord('t')
 KEY_SAVE = ord('S')
 KEY_FIND = ord('/')
 KEY_FIND_NEXT = ord('n')
+KEY_HOME = curses.KEY_HOME
+KEY_END = curses.KEY_END
+KEY_HELP = ord('?')
 
 MODE_FILESYSTEM = 0
 MODE_TAGGED_FILES = 1
@@ -49,7 +52,7 @@ class Main(object):
         self.configFile = config
 
     def GetKey(self):
-        # Most keys are defined in terms of the input character, but we have support
+        # Most keys are defined in terms of the input character, but we do have support
         # for multiple inputs mapped to the same key code
         ch = self.currentWindow.win.getch()
         if ch == 10:
@@ -63,7 +66,7 @@ class Main(object):
     def Start(self, stdscrn):
         self.scrn = screen.Screen()
         self.scrn.win = stdscrn
-        self.filewin, self.tagwin, self.statuswin = screen.layout(self.scrn, 2, 10)
+        self.filewin, self.tagwin, self.statuswin = screen.layout(self.scrn, 2, 13)
 
         curses.init_pair(curses.COLOR_GREEN, curses.COLOR_GREEN, curses.COLOR_BLACK)
         curses.init_pair(curses.COLOR_BLUE, curses.COLOR_BLUE, curses.COLOR_BLACK)
@@ -139,6 +142,8 @@ class Main(object):
                    self.selectedFilename = o.fullpath
                self.Save()
                return
+            if c == KEY_HELP:
+                self.statuswin.Error("Error", "Help is not yet implemented")
             elif c == KEY_SAVE:
                 self.Save()
             elif c == KEY_SWITCH_WINDOW:
@@ -223,11 +228,13 @@ class Main(object):
 
     def TagMenu(self):
         selectedName = "None"
+        currentName = self.tagwin.GetCurrent().name
         o = self.tagwin.GetSelected()
         if o:
             selectedName = o.name
-        currentName = self.tagwin.GetCurrent().name
-        s = "(c)reate (a)dd to \"{0}\" (A)dd to \"{1}\" (r)emove from \"{2}\" (s)et default dir".format(selectedName, currentName, currentName)
+            s = "(c)reate (a)dd to \"{0}\" (A)dd to \"{1}\" (r)emove from \"{2}\" (s)et default dir".format(selectedName, currentName, currentName)
+        else:
+            s = "(c)reate (A)dd to \"{1}\" (r)emove from \"{2}\" (s)et default dir".format(selectedName, currentName, currentName)
         c = self.statuswin.Command("Tag commands", s)
         if c == None:
             return
@@ -245,7 +252,7 @@ class Main(object):
                 for f in filesSelected:
                     if tagname != '*':
                         cnt += 1
-                        f.AddTag(tagName)
+                        f.AddTag(tagname)
             else:
                 for f in filesSelected:
                     file = fsapi.File(f.name)
@@ -256,14 +263,21 @@ class Main(object):
                         cnt += 1
                         file.AddTag(tagname)
 
-                self.statuswin.Message("", "{0} files added to tag \"{1}\"".format(cnt, tagname))
+            self.statuswin.Message("", "{0} files added to tag \"{1}\"".format(cnt, tagname))
         elif c == ord('c'):
             name = self.statuswin.Prompt("Create tag", "Tag name: ")
             if name:
                 self.tagwin.AddObject(fsapi.Tag(name))
                 self.tagwin.Refresh()
         elif c == ord('r'):
-            self.statuswin.Error("Not implemented", "Tag remove is not yet implemented")
+            if currentWindow == self.tagwin:
+                tag = self.tagwin.GetCurrent()
+                yno = self.statuswin.Prompt("Remove tag", "Remove all tags '{}' (y/n)".format(tag.name))
+                if yno == "y":
+                    objs = self.tagdb.GetAllWithTag(tag.name)
+                    for o in objs:
+                        o.RemoveTag(tag.name)
+                    self.tagwin.RemoveTag(tag.name)
         elif c == ord('s'):
             obj = self.tagwin.GetCurrent()
             dir = self.filewin.GetDir()
@@ -271,7 +285,15 @@ class Main(object):
             self.statuswin.Message("", "{0} default dir set to {1}".format(obj.name, dir.fullpath))
 
     def DefaultCommand(self, window, c):
-        if c == KEY_SCROLL_UP:
+        if c == KEY_HOME:
+            window.Home()
+            window.Refresh()
+            return
+        if c == KEY_END:
+            window.End()
+            window.Refresh()
+            return
+        elif c == KEY_SCROLL_UP:
             window.ScrollUp(1)
             window.Refresh()
             return True

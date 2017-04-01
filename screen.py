@@ -89,6 +89,12 @@ class FileWindow(object):
     def Clear(self):
         self.basicNav.Clear(self)
 
+    def Home(self):
+        self.basicNav.Home(self)
+
+    def End(self):
+        self.basicNav.End(self)
+
     def PageUp(self):
         self.basicNav.LineUp(self, self.height-1)
 
@@ -218,6 +224,12 @@ class TagWindow(object):
         assert y >= 0
         self.win.move(y, 0)
 
+    def Home(self):
+        self.basicNav.Home(self)
+
+    def End(self):
+        self.basicNav.End(self)
+
     def PageUp(self):
         self.basicNav.LineUp(self, self.height-1)
 
@@ -238,6 +250,18 @@ class TagWindow(object):
 
     def GetCurrent(self):
         return self.basicNav.GetCurrent(self)
+
+    def RemoveTag(self, name):
+        for o in self.objects:
+            if o.name == name:
+                self.objects.remove(o)
+        self.currentObject = 0
+        self.firstObject = 0
+        self.lastObject = len(self.objects) - 1
+        if self.lastObject >= self.height:
+            self.lastObject = self.height - 1
+        self.redraw = True
+        self.Refresh()
 
     def AddObject(self, obj):
         self.basicNav.AddObject(self, obj)
@@ -412,6 +436,32 @@ class BasicNavigation(object):
         win.currentObject = -1
         win.win.clear()
         win.redraw = True
+
+    def Home(self, win):
+        if win.selectionPreChanged:
+            win.selectionPreChanged()
+        win.currentObject = 0
+        win.firstObject = 0
+        win.lastObject = win.height - 1
+        if win.lastObject > len(win.objects):
+            win.lastObject = len(self.objects)-1
+        if win.selectionChanged:
+            win.selectionChanged()
+        win.redraw = True
+        win.Refresh()
+
+    def End(self, win):
+        if win.selectionPreChanged:
+            win.selectionPreChanged()
+        win.lastObject = len(win.objects) - 1
+        win.currentObject = win.lastObject
+        win.firstObject = win.lastObject - win.height+1
+        if win.firstObject < 0:
+            win.firstObject = 0
+        if win.selectionChanged:
+            win.selectionChanged()
+        win.redraw = True
+        win.Refresh()
 
     def PageUp(self, win):
         self.LineUp(win, win.height-1)

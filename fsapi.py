@@ -1,3 +1,4 @@
+import functools
 import os
 
 def IsTag(o):
@@ -67,6 +68,9 @@ class Dir(object):
             if self.parentdir:
                 self.parentdir.AddTag(name);
 
+    def RemoveTag(self, tag):
+        self.tags.remove(tag)
+
     def __repr__(self):
         return "Dir:{0},{1}".format(self.name, self.fullpath)
 
@@ -107,6 +111,9 @@ class File(object):
             if self.parentdir:
                 self.parentdir.AddTag(name);
 
+    def RemoveTag(self, tag):
+        self.tags.remove(tag)
+
     def __repr__(self):
         return "File:{0},{1},{2}".format(self.name, self.fullpath, self.tags)
 
@@ -138,6 +145,10 @@ class Tag(object):
         return "tag:{0}".format(self.name)
 
 #####################################################################
+def AddIfHasTag(lst, tag, obj):
+    if obj.HasTag(tag):
+        lst.append(obj)
+
 class Database(object):
     def __init__(self):
         self.root = Dir("/")
@@ -148,8 +159,8 @@ class Database(object):
         self.root = Dir("/")
         self.root.fullpath = "/"
 
-    def Save(self, f):
-        self._walk(self.root, f)
+    def Save(self, fdfile):
+        self._walk(self.root, lambda obj: obj.Save(fdfile))
 
     def Load(self, f):
         for line in f:
@@ -162,6 +173,11 @@ class Database(object):
             head, _ = os.path.split(obj.fullname)
             parent = self.EnsurePath(head)
             parent.AddChild(obj)
+
+    def GetAllWithTag(self, tag):
+        r = []
+        self._walk(self.root, functools.partial(AddIfHasTag, r, tag))
+        return r
 
     def GetTags(self, path):
         if self.root.files.has_key(path):
@@ -220,13 +236,13 @@ class Database(object):
             for f in files:
                 cdir.AddChild(File(f))
 
-    def _walk(self, d, f):
+    def _walk(self, d, func):
         if d.fullpath != "/":
-            d.Save(f)
+            func(d)
         for child in d.children:
             if IsDir(child):
-                self._walk(child, f)
+                self._walk(child, func)
             else:
-                child.Save(f)
+                func(child)
 
 
