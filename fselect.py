@@ -8,9 +8,9 @@ import curses.ascii
 
 KEY_QUIT = ord('q')
 KEY_QUIT_NO_SAVE = ord('Q')
-KEY_SCROLL_UP = 5  # ctrl-E
+KEY_SCROLL_DOWN = 5  # ctrl-E
 KEY_SELECT = ord(' ')
-KEY_SCROLL_DOWN = 25  # ctrl-Y
+KEY_SCROLL_UP = 25  # ctrl-Y
 KEY_LINE_UP = curses.KEY_UP
 KEY_LINE_DOWN = curses.KEY_DOWN
 KEY_HALF_DOWN = 21  # ctrl-U
@@ -34,7 +34,7 @@ WINDOW_FILES = 0
 WINDOW_TAGS = 1
 
 class Main(object):
-    def __init__(self):
+    def __init__(self, config):
         self.tagdb = fsapi.Database()
         self.filesysdb = fsapi.Database()
         self.scrn = None
@@ -46,6 +46,7 @@ class Main(object):
         self.currentWindow = None
         self.filesysSave = None
         self.tagSave = None
+        self.configFile = config
 
     def GetKey(self):
         # Most keys are defined in terms of the input character, but we have support
@@ -90,7 +91,7 @@ class Main(object):
             self.LoadTaggedFilesIntoFileWindow(path)
 
     def Save(self):
-       dbfile = open("/home/jeff/.config/fselect/fselect.dat", "w")
+       dbfile = open(self.configFile, "w")
        s = ""
        for o in self.tagwin.objects:
            if o.name != '*':
@@ -100,7 +101,7 @@ class Main(object):
 
     def Load(self):
         self.tagwin.AddObject(fsapi.Tag('*'))
-        dbfile = open("/home/jeff/.config/fselect/fselect.dat", "r")
+        dbfile = open(self.configFile, "r")
         line = dbfile.readline()
         line = line[:-1]
         while line != "END_OF_TAGS" and line != "":
@@ -420,15 +421,28 @@ class Main(object):
 
 if __name__ == "__main__":
     useTempFile = None
+    home = os.path.expanduser("~")
+    configDir = "{0}/.config/fselect".format(home)
+    configFile = "fselect.dat"
     argc = 0
     while argc < len(sys.argv):
         arg = sys.argv[argc]
         if arg == "--usefile":
             argc += 1
             useTempFile = sys.argv[argc]
+        if arg == "--config":
+            argc += 1
+            configFile = sys.argv[argc]
         argc += 1
 
-    m = Main()
+    if os.path.isdir(configDir) == False:
+        os.makedirs(configDir)
+
+    configPath = configDir + "/" + configFile
+    if os.path.isfile(configPath) == False:
+        open(configPath, "a").close()
+
+    m = Main(configPath)
     curses.wrapper(m.Start)
     if m.selectedFilename:
         if useTempFile:
