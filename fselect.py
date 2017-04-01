@@ -227,7 +227,7 @@ class Main(object):
         if o:
             selectedName = o.name
         currentName = self.tagwin.GetCurrent().name
-        s = "(c)reate (a)dd to \"{}\" (A)dd to \"{}\" (r)emove from \"{}\" (s)et default dir".format(selectedName, currentName, currentName)
+        s = "(c)reate (a)dd to \"{0}\" (A)dd to \"{1}\" (r)emove from \"{2}\" (s)et default dir".format(selectedName, currentName, currentName)
         c = self.statuswin.Command("Tag commands", s)
         if c == None:
             return
@@ -256,7 +256,7 @@ class Main(object):
                         cnt += 1
                         file.AddTag(tagname)
 
-                self.statuswin.Message("", "{} files added to tag \"{}\"".format(cnt, tagname))
+                self.statuswin.Message("", "{0} files added to tag \"{1}\"".format(cnt, tagname))
         elif c == ord('c'):
             name = self.statuswin.Prompt("Create tag", "Tag name: ")
             if name:
@@ -268,7 +268,7 @@ class Main(object):
             obj = self.tagwin.GetCurrent()
             dir = self.filewin.GetDir()
             obj.defaultDir = dir.fullpath
-            self.statuswin.Message("", "{} default dir set to {}".format(obj.name, dir.fullpath))
+            self.statuswin.Message("", "{0} default dir set to {1}".format(obj.name, dir.fullpath))
 
     def DefaultCommand(self, window, c):
         if c == KEY_SCROLL_UP:
@@ -322,12 +322,12 @@ class Main(object):
             self.lastpat = self.statuswin.Prompt("Find file", "Enter pattern: ")
             if self.lastpat:
                 if self.filewin.Find(self.lastpat) == False:
-                    self.statuswin.Error("Find", "{} not found".format(self.lastpat))
+                    self.statuswin.Error("Find", "{0} not found".format(self.lastpat))
                 self.filewin.Refresh()
         elif c == KEY_FIND_NEXT:
             if self.lastpat:
                 if self.filewin.FindNext(self.lastpat) == False:
-                    self.statuswin.Error("Find", "{} not found".format(self.lastpat))
+                    self.statuswin.Error("Find", "{0} not found".format(self.lastpat))
                 self.filewin.Refresh()
         elif c == KEY_TAG_MENU:
             self.TagMenu()
@@ -372,12 +372,12 @@ class Main(object):
             self.lastpat = self.statuswin.Prompt("Find file", "Enter pattern: ")
             if self.lastpat:
                 if self.filewin.Find(self.lastpat) == False:
-                    self.statuswin.Error("Find", "{} not found".format(self.lastpat))
+                    self.statuswin.Error("Find", "{0} not found".format(self.lastpat))
                 self.filewin.Refresh()
         elif c == KEY_FIND_NEXT:
             if self.lastpat:
                 if self.filewin.FindNext(self.lastpat) == False:
-                    self.statuswin.Error("Find", "{} not found".format(self.lastpat))
+                    self.statuswin.Error("Find", "{0} not found".format(self.lastpat))
                 self.filewin.Refresh()
         elif c == KEY_SELECT:
             o = self.filewin.GetCurrent()

@@ -68,7 +68,7 @@ class Dir(object):
                 self.parentdir.AddTag(name);
 
     def __repr__(self):
-        return "Dir:{},{}".format(self.name, self.fullpath)
+        return "Dir:{0},{1}".format(self.name, self.fullpath)
 
 #####################################################################
 class File(object):
@@ -108,7 +108,7 @@ class File(object):
                 self.parentdir.AddTag(name);
 
     def __repr__(self):
-        return "File:{},{},{}".format(self.name, self.fullpath, self.tags)
+        return "File:{0},{1},{2}".format(self.name, self.fullpath, self.tags)
 
 #####################################################################
 class Tag(object):
@@ -119,7 +119,7 @@ class Tag(object):
         self.lastSeenPath = None
 
     def Save(self, f):
-        s = "{}|{}\n".format(self.name, self.defaultDir)
+        s = "{0}|{1}\n".format(self.name, self.defaultDir)
         f.write(s)
 
     def Load(self, line):
@@ -135,7 +135,7 @@ class Tag(object):
         return False
 
     def __repr__(self):
-        return "tag:{}".format(self.name)
+        return "tag:{0}".format(self.name)
 
 #####################################################################
 class Database(object):

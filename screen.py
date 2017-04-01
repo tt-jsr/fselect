@@ -163,12 +163,12 @@ class FileWindow(object):
                 tags += t + ","
             tags = tags[:-1]
         if fsapi.IsDir(obj):
-            self.win.addstr(y, 0, "d {}".format(obj.name), attr | curses.color_pair(curses.COLOR_GREEN))
+            self.win.addstr(y, 0, "d {0}".format(obj.name), attr | curses.color_pair(curses.COLOR_GREEN))
         else:
             if obj.selected:
-                self.win.addstr(y, 0, "* {}".format(obj.name), attr | curses.color_pair(curses.COLOR_YELLOW))
+                self.win.addstr(y, 0, "* {0}".format(obj.name), attr | curses.color_pair(curses.COLOR_YELLOW))
             else:
-                self.win.addstr(y, 0, "  {}".format(obj.name), attr | curses.color_pair(curses.COLOR_BLUE))
+                self.win.addstr(y, 0, "  {0}".format(obj.name), attr | curses.color_pair(curses.COLOR_BLUE))
         self.win.addstr(tags, curses.color_pair(curses.COLOR_MAGENTA))
 
     def _findImpl(self, pattern, startidx):
@@ -256,9 +256,9 @@ class TagWindow(object):
 
     def _drawLine(self, y, obj, attr):
         if obj.selected:
-            self.win.addstr(y, 0, "{}".format(obj.name), attr | curses.color_pair(curses.COLOR_YELLOW))
+            self.win.addstr(y, 0, "{0}".format(obj.name), attr | curses.color_pair(curses.COLOR_YELLOW))
         else:
-            self.win.addstr(y, 0, "{}".format(obj.name), attr | curses.color_pair(curses.COLOR_GREEN))
+            self.win.addstr(y, 0, "{0}".format(obj.name), attr | curses.color_pair(curses.COLOR_GREEN))
 
 #####################################################################
 class StatusWindow(object):
