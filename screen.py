@@ -343,9 +343,10 @@ class StatusWindow(object):
         self.line2 = options
         self.Refresh()
         c = self.win.getch()
-        if c == 27:
+        if c == 27 or c == 10 or c == 13:
             self.Reset()
             return None
+        self.Reset()
         return c
 
     def Reset(self):

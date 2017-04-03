@@ -6,8 +6,8 @@ import os
 import curses
 import curses.ascii
 
-KEY_QUIT = ord('q')
-KEY_QUIT_NO_SAVE = ord('Q')
+KEY_QUIT_NO_SAVE = ord('q')
+KEY_RETURN = 10
 KEY_SCROLL_DOWN = 5  # ctrl-E
 KEY_SELECT = ord(' ')
 KEY_SCROLL_UP = 25  # ctrl-Y
@@ -55,12 +55,14 @@ class Main(object):
         # Most keys are defined in terms of the input character, but we do have support
         # for multiple inputs mapped to the same key code
         ch = self.currentWindow.win.getch()
-        if ch == 10:
-            return KEY_DOWN_DIR
         if ch == ord('j'):
             return KEY_LINE_DOWN
         if ch == ord('k'):
             return KEY_LINE_UP
+        if ch == ord('l'):
+            return KEY_DOWN_DIR
+        if ch == ord('h'):
+            return KEY_UP_DIR
         return ch
 
     def Start(self, stdscrn):
@@ -132,16 +134,15 @@ class Main(object):
         while True:
             c = self.GetKey()
             if c == KEY_QUIT_NO_SAVE:
-               o = self.filewin.GetCurrent()
-               if o:
-                    self.selectedFilename = o.fullpath
+               self.selectedFilename = None
                return
-            if c == KEY_QUIT:
+            if c == KEY_RETURN:
                o = self.filewin.GetCurrent()
-               if o:
+               if fsapi.IsFile(o):
                    self.selectedFilename = o.fullpath
-               self.Save()
-               return
+                   self.Save()
+                   return
+               c = KEY_DOWN_DIR
             if c == KEY_HELP:
                 self.statuswin.Error("Error", "Help is not yet implemented")
             elif c == KEY_SAVE:
@@ -226,63 +227,85 @@ class Main(object):
         self.filewin.Refresh()
         return parentdir
 
-    def TagMenu(self):
-        selectedName = "None"
-        currentName = self.tagwin.GetCurrent().name
-        o = self.tagwin.GetSelected()
-        if o:
-            selectedName = o.name
-            s = "(c)reate (a)dd to \"{0}\" (A)dd to \"{1}\" (r)emove from \"{2}\" (s)et default dir".format(selectedName, currentName, currentName)
-        else:
-            s = "(c)reate (A)dd to \"{1}\" (r)emove from \"{2}\" (s)et default dir".format(selectedName, currentName, currentName)
-        c = self.statuswin.Command("Tag commands", s)
-        if c == None:
-            return
-        if c == ord('a') or c == ord('A'):
-            if c == ord('a'):
-                if selectedName == "None":
-                    self.statuswin.Error("Error", "No tag is selected")
-                    return
-                tagname = selectedName
-            else:
-                tagname = currentName
-            cnt = 0
-            filesSelected = self.filewin.GetSelected()
-            if self.currentMode == MODE_TAGGED_FILES:
-                for f in filesSelected:
-                    if tagname != '*':
-                        cnt += 1
-                        f.AddTag(tagname)
-            else:
-                for f in filesSelected:
-                    file = fsapi.File(f.name)
-                    dir, _ = os.path.split(f.fullpath)
-                    parent = self.tagdb.EnsurePath(dir)
-                    parent.AddChild(file)
-                    if tagname != '*':
-                        cnt += 1
-                        file.AddTag(tagname)
+    def CreateTag(self):
+        name = self.statuswin.Prompt("Create tag", "Tag name: ")
+        if name:
+            self.tagwin.AddObject(fsapi.Tag(name))
+            self.tagwin.Refresh()
 
-            self.statuswin.Message("", "{0} files added to tag \"{1}\"".format(cnt, tagname))
-        elif c == ord('c'):
-            name = self.statuswin.Prompt("Create tag", "Tag name: ")
-            if name:
-                self.tagwin.AddObject(fsapi.Tag(name))
-                self.tagwin.Refresh()
-        elif c == ord('r'):
-            if currentWindow == self.tagwin:
-                tag = self.tagwin.GetCurrent()
-                yno = self.statuswin.Prompt("Remove tag", "Remove all tags '{}' (y/n)".format(tag.name))
-                if yno == "y":
-                    objs = self.tagdb.GetAllWithTag(tag.name)
-                    for o in objs:
-                        o.RemoveTag(tag.name)
-                    self.tagwin.RemoveTag(tag.name)
-        elif c == ord('s'):
-            obj = self.tagwin.GetCurrent()
-            dir = self.filewin.GetDir()
-            obj.defaultDir = dir.fullpath
-            self.statuswin.Message("", "{0} default dir set to {1}".format(obj.name, dir.fullpath))
+    def AddTag(self, tagname):
+        filesSelected = self.filewin.GetSelected()
+        cnt = 0
+        if self.currentMode == MODE_TAGGED_FILES:
+            for f in filesSelected:
+                if tagname != '*':
+                    cnt += 1
+                    f.AddTag(tagname)
+        else:
+            for f in filesSelected:
+                file = fsapi.File(f.name)
+                dir, _ = os.path.split(f.fullpath)
+                parent = self.tagdb.EnsurePath(dir)
+                parent.AddChild(file)
+                if tagname != '*':
+                    cnt += 1
+                    file.AddTag(tagname)
+        self.statuswin.Message("", "{0} files added to tag \"{1}\"".format(cnt, tagname))
+
+    def AddSelectedTag(self):
+        o = self.tagwin.GetSelected()
+        if o == None:
+            self.statusWin.Error("Error", "No selected tag")
+            return
+        self.AddTag(o.name)
+
+    def AddCurrentTag(self):
+        o = self.tagwin.GetCurrent()
+        assert o
+        self.AddTag(o.name)
+
+    def DestroyTag(self):
+        tag = self.tagwin.GetCurrent()
+        yno = self.statuswin.Prompt("Delete tag", "Delete tag '{0}' (y/n)".format(tag.name))
+        if yno == "y":
+            objs = self.tagdb.GetAllWithTag(tag.name)
+            for o in objs:
+                o.RemoveTag(tag.name)
+            self.tagwin.RemoveTag(tag.name)
+
+    def RemoveTag(self):
+        obj = self.filewin.GetCurrent()
+        tagobj = self.tagwin.GetCurrent()
+        selected = self.filewin.GetSelected()
+        if len(selected):
+            yno = self.statuswin.Prompt("Remove tag", "Remove tag '{0}' from '{1}' files (y/n)".format(tagobj.name, len(selected)))
+        else:
+            yno = self.statuswin.Prompt("Remove tag", "Remove tag '{0}' from '{1} (y/n)".format(tagobj.name, obj.name))
+        if yno == "y":
+            tagname = tagobj.name
+            if len(selected):
+                for file in selected:
+                    if fsapi.IsFile(file):
+                        file.RemoveTag(tagname)
+                return
+            o = self.filewin.GetCurrent()
+            if fsapi.IsFile(o):
+                o.RemoveTag(tagname)
+                self.filewin.Refresh(True)
+                return
+            for child in o.children:
+                if child.HasTag(tagname):
+                    self.statuswin.Error("Error", "Cannot remove tag from directory when children have tag")
+                    return
+            o.RemoveTag(tagname)
+            self.filewin.Refresh(True)
+
+
+    def SetTagDefaultDir(self):
+        obj = self.tagwin.GetCurrent()
+        dir = self.filewin.GetDir()
+        obj.defaultDir = dir.fullpath
+        self.statuswin.Message("", "{0} default dir set to {1}".format(obj.name, dir.fullpath))
 
     def DefaultCommand(self, window, c):
         if c == KEY_HOME:
@@ -352,7 +375,23 @@ class Main(object):
                     self.statuswin.Error("Find", "{0} not found".format(self.lastpat))
                 self.filewin.Refresh()
         elif c == KEY_TAG_MENU:
-            self.TagMenu()
+            currentName = self.tagwin.GetCurrent().name
+            selectedName = "Invalid"
+            o = self.tagwin.GetSelected()
+            if o:
+                selectedName = o.name
+                menu = "(A)dd to \"{0}\" (a)dd to \"{1}\" (r)emove from \"{2}\" (s)et default dir".format(selectedName, currentName, currentName)
+            else:
+                menu = "(a)dd to \"{1}\" (r)emove from \"{2}\" (s)et default dir".format(selectedName, currentName, currentName)
+            c = self.statuswin.Command("Tag commands", menu)
+            if c == ord('a'):
+                self.AddCurrentTag()
+            elif c == ord('A') and o:
+                self.AddSelectedTag()
+            elif c == ord('r'):
+                self.RemoveTag()
+            elif c == ord('s'):
+                self.SetTagDefaultDir()
         elif c == KEY_SELECT:
             o = self.filewin.GetCurrent()
             if fsapi.IsFile(o):
@@ -389,7 +428,21 @@ class Main(object):
             self.filewin.Refresh()
             self.statuswin.Reset()
         elif c == KEY_TAG_MENU:
-            self.TagMenu()
+            currentName = self.tagwin.GetCurrent().name
+            selectedName = "Invalid"
+            o = self.tagwin.GetSelected()
+            if o:
+                selectedName = o.name
+                menu = "(A)dd to \"{0}\" (r)emove from \"{1}\" (s)et default dir".format(selectedName, currentName)
+            else:
+                menu = "(r)emove from \"{0}\" (s)et default dir".format(currentName, currentName)
+            c = self.statuswin.Command("Tag commands", menu)
+            if c == ord('A') and o:
+                self.AddSelectedTag(self)
+            elif c == ord('r'):
+                self.RemoveTag()
+            elif c == ord('s'):
+                self.SetTagDefaultDir()
         elif c == KEY_FIND:
             self.lastpat = self.statuswin.Prompt("Find file", "Enter pattern: ")
             if self.lastpat:
@@ -440,6 +493,16 @@ class Main(object):
             o = self.tagwin.GetCurrent()
             o.selected = True
             self.tagwin.Refresh(True)
+        if c == KEY_TAG_MENU:
+            currentName = self.tagwin.GetCurrent()
+            menu = "(c)reate tag (d)estroy tag (s)et default dir"
+            c = self.statuswin.Command("Tag commands", menu)
+            if c == ord('c'):
+                self.CreateTag()
+            elif c == ord('d'):
+                self.DestroyTag()
+            elif c == ord('s'):
+                self.SetTagDefaultDir()
 
 if __name__ == "__main__":
     useTempFile = None
