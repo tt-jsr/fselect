@@ -6,7 +6,8 @@ import os
 import curses
 import curses.ascii
 
-KEY_QUIT_NO_SAVE = ord('q')
+KEY_QUIT = ord('q')
+KEY_QUIT_NO_SAVE = ord('Q')
 KEY_RETURN = 10
 KEY_SCROLL_DOWN = 5  # ctrl-E
 KEY_SELECT = ord(' ')
@@ -133,6 +134,9 @@ class Main(object):
 
         while True:
             c = self.GetKey()
+            if c == KEY_QUIT:
+                self.Save()
+                return
             if c == KEY_QUIT_NO_SAVE:
                self.selectedFilename = None
                return
