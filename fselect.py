@@ -136,6 +136,7 @@ class Main(object):
             c = self.GetKey()
             if c == KEY_QUIT:
                 self.Save()
+                self.selectedFilename = None
                 return
             if c == KEY_QUIT_NO_SAVE:
                self.selectedFilename = None
@@ -540,3 +541,6 @@ if __name__ == "__main__":
             f.close()
         else:
             print m.selectedFilename
+    else:
+        f  = open(useTempFile, "w")
+        f.close()
