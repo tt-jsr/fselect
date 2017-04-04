@@ -17,6 +17,9 @@ class Screen(object):
         self.statussep_y = 0
         self.statussep_width = 0
 
+    def Refresh(self, redraw = False):
+        pass
+
     def SetFocus(self, window):
         if window == fselect.WINDOW_FILES:
             self.win.move(0, self.tagsep_x+1)

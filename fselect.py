@@ -5,6 +5,7 @@ import screen
 import os
 import curses
 import curses.ascii
+from subprocess import call
 
 KEY_QUIT = ord('q')
 KEY_QUIT_NO_SAVE = ord('Q')
@@ -30,6 +31,7 @@ KEY_FIND_NEXT = ord('n')
 KEY_HOME = curses.KEY_HOME
 KEY_END = curses.KEY_END
 KEY_HELP = ord('?')
+KEY_LAUNCH_LESS = ord('v')
 
 MODE_FILESYSTEM = 0
 MODE_TAGGED_FILES = 1
@@ -156,6 +158,20 @@ class Main(object):
                 self.SwitchWindow()
             elif c == KEY_TOGGLE_MODE:
                 self.SwitchMode()
+            elif c == KEY_LAUNCH_LESS:
+                obj = self.filewin.GetCurrent()
+                if fsapi.IsFile(obj):
+                    curses.savetty()
+                    call(["less", "-X", obj.fullpath])
+                    curses.resetty()
+                    self.statuswin.Refresh(True)
+                    self.filewin.Refresh(True)
+                    self.filewin.win.keypad(1)
+                    self.tagwin.Refresh(True)
+                    self.tagwin.win.keypad(1)
+                    self.scrn.Refresh(True)
+                else:
+                    self.statuswin.Error("Error", obj.name + " is a directory")
             else:
                 if self.DefaultCommand(self.currentWindow, c) == False:
                     if self.currentWindow == self.filewin:
