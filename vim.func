@@ -1,4 +1,34 @@
 " Function for adding to vim
+function! FselectBrowseChooser()
+    let temp = "/tmp/fselect.tmp"
+    if has("gui_running")
+        exec 'silent !terminator -e fselect.py --usefile ' . shellescape(temp) . ' --browse ' . expand("%:p:h")
+    else
+        exec 'silent !env TERM=xterm fselect.py --usefile ' . shellescape(temp) . ' --browse ' . expand("%:p:h")
+    endif
+    if !filereadable(temp)
+        redraw!
+        " Nothing to read.
+        return
+    endif
+    let names = readfile(temp)
+    if empty(names)
+        redraw!
+        " Nothing to open.
+        return
+    endif
+    " Edit the first item.
+    exec 'edit ' . fnameescape(names[0])
+    " Add any remaning items to the arg list/buffer list.
+    for name in names[1:]
+        exec 'argadd ' . fnameescape(name)
+    endfor
+    redraw!
+endfunction
+
+command! -bar FselectBrowseChooser call FselectBrowseChooser()
+nnoremap <leader>b :<C-U>FselectBrowseChooser<CR>
+
 function! FselectChooser()
     let temp = "/tmp/fselect.tmp"
     if has("gui_running")
