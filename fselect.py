@@ -51,6 +51,7 @@ class Main(object):
         self.filesysSave = None
         self.tagSave = None
         self.configFile = config
+        self.startDir = None
 
     def GetKey(self):
         # Most keys are defined in terms of the input character, but we do have support
@@ -126,11 +127,18 @@ class Main(object):
         self.tagwin.RegisterSelectionChangedEvent(self.OnTagChange)
         self.tagwin.RegisterSelectionPreChangedEvent(self.OnTagPreChange)
 
-        self.LoadTaggedFilesIntoFileWindow("/")
-        self.statuswin.CurrentMode("Tag browse")
-        self.currentWindow = self.filewin
-        self.currentMode = MODE_TAGGED_FILES
-        self.scrn.SetFocus(WINDOW_FILES)
+        if self.startDir:
+            self.LoadDirectoryIntoFileWindow(self.startDir)
+            self.statuswin.CurrentMode("Filesystem browse")
+            self.currentWindow = self.filewin
+            self.currentMode = MODE_FILESYSTEM
+            self.scrn.SetFocus(WINDOW_FILES)
+        else:
+            self.LoadTaggedFilesIntoFileWindow("/")
+            self.statuswin.CurrentMode("Tag browse")
+            self.currentWindow = self.filewin
+            self.currentMode = MODE_TAGGED_FILES
+            self.scrn.SetFocus(WINDOW_FILES)
 
         while True:
             c = self.GetKey()
@@ -514,6 +522,7 @@ if __name__ == "__main__":
     home = os.path.expanduser("~")
     configDir = "{0}/.config/fselect".format(home)
     configFile = "fselect.dat"
+    startDir = None
     argc = 0
     while argc < len(sys.argv):
         arg = sys.argv[argc]
@@ -523,6 +532,9 @@ if __name__ == "__main__":
         if arg == "--config":
             argc += 1
             configFile = sys.argv[argc]
+        if arg == "--browse":
+            argc += 1
+            startDir = sys.argv[argc]
         argc += 1
 
     if os.path.isdir(configDir) == False:
@@ -533,6 +545,7 @@ if __name__ == "__main__":
         open(configPath, "a").close()
 
     m = Main(configPath)
+    m.startDir = startDir
     curses.wrapper(m.Start)
     if m.selectedFilename:
         if useTempFile:
