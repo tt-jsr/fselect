@@ -45,7 +45,7 @@ class Main(object):
         self.filewin = None
         self.tagwin = None
         self.statuswin = None
-        self.selectedFilename = None
+        self.selectedFilenames = None
         self.currentMode = MODE_FILESYSTEM
         self.currentWindow = None
         self.filesysSave = None
@@ -150,11 +150,17 @@ class Main(object):
                self.selectedFilename = None
                return
             if c == KEY_RETURN:
-               o = self.filewin.GetCurrent()
-               if fsapi.IsFile(o):
-                   self.selectedFilename = o.fullpath
-                   self.Save()
-                   return
+               self.selectedFilenames = []
+               files = self.filewin.GetSelected()
+               if len(files):
+                   for o in files:
+                       self.selectedFilenames.append(o.fullpath)
+               else:
+                   o = self.filewin.GetCurrent()
+                   if fsapi.IsFile(o):
+                       self.selectedFilenames.append(o.fullpath)
+               self.Save()
+               return
                c = KEY_DOWN_DIR
             if c == KEY_HELP:
                 self.statuswin.Error("Error", "Help is not yet implemented")
@@ -451,7 +457,7 @@ class Main(object):
                 menu = "(r)emove from \"{0}\" (s)et default dir".format(currentName, currentName)
             c = self.statuswin.Command("Tag commands", menu)
             if c == ord('A') and o:
-                self.AddSelectedTag(self)
+                self.AddSelectedTag()
             elif c == ord('r'):
                 self.RemoveTag()
             elif c == ord('s'):
@@ -547,13 +553,14 @@ if __name__ == "__main__":
     m = Main(configPath)
     m.startDir = startDir
     curses.wrapper(m.Start)
-    if m.selectedFilename:
+    if m.selectedFilenames:
         if useTempFile:
             f  = open(useTempFile, "w")
-            f.write(m.selectedFilename + "\n")
+            for o in m.selectedFilenames:
+                f.write(o + "\n")
             f.close()
         else:
-            print m.selectedFilename
+            print m.selectedFilenames
     else:
         f  = open(useTempFile, "w")
         f.close()
