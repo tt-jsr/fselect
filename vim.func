@@ -4,7 +4,7 @@ function! FselectBrowseChooser()
     if has("gui_running")
         exec 'silent !terminator -e fselect.py --usefile ' . shellescape(temp) . ' --browse ' . expand("%:p:h")
     else
-        exec 'silent !env TERM=xterm fselect.py --usefile ' . shellescape(temp) . ' --browse ' . expand("%:p:h")
+        exec 'silent !fselect.py --usefile ' . shellescape(temp) . ' --browse ' . expand("%:p:h")
     endif
     if !filereadable(temp)
         redraw!
