@@ -137,11 +137,12 @@ class Main(object):
             self.currentMode = MODE_FILESYSTEM
             self.scrn.SetFocus(WINDOW_FILES)
         else:
-            self.LoadTaggedFilesIntoFileWindow("/")
             self.statuswin.CurrentMode("Tag browse")
             self.currentWindow = self.filewin
             self.currentMode = MODE_TAGGED_FILES
             self.scrn.SetFocus(WINDOW_FILES)
+            #self.LoadTaggedFilesIntoFileWindow("/")
+            self.OnTagChange()
 
         while True:
             c = self.GetKey()
