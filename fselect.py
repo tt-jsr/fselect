@@ -101,23 +101,26 @@ class Main(object):
        dbfile = open(self.configFile, "w")
        s = ""
        for o in self.tagwin.objects:
-           if o.name != '*':
-               o.Save(dbfile)
+           o.Save(dbfile)
        dbfile.write("END_OF_TAGS\n")
        self.tagdb.Save(dbfile)
 
     def Load(self):
-        self.tagwin.AddObject(fsapi.Tag('*'))
         dbfile = open(self.configFile, "r")
         line = dbfile.readline()
         line = line[:-1]
+        gotStar = False
         while line != "END_OF_TAGS" and line != "":
+            if line[0] == '*':
+                gotStar = True
             t = fsapi.Tag("")
             t.Load(line)
             self.tagwin.AddObject(t)
             line = dbfile.readline()
             line = line[:-1]
 
+        if gotStar == False:
+            self.tagwin.AddObject(fsapi.Tag('*'))
         self.tagdb.Load(dbfile)
         dbfile.close()
 
@@ -155,12 +158,14 @@ class Main(object):
                if len(files):
                    for o in files:
                        self.selectedFilenames.append(o.fullpath)
+                       self.Save()
+                       return
                else:
                    o = self.filewin.GetCurrent()
                    if fsapi.IsFile(o):
                        self.selectedFilenames.append(o.fullpath)
-               self.Save()
-               return
+                       self.Save()
+                       return
                c = KEY_DOWN_DIR
             if c == KEY_HELP:
                 self.statuswin.Error("Error", "Help is not yet implemented")
@@ -180,6 +185,8 @@ class Main(object):
                     else:
                         self.TagWindowCommand(c)
 
+# Pressing KEY_SWITCH_WINDOW will change focus between
+# the tag window and the file window
     def SwitchWindow(self):
         if self.currentWindow == self.filewin:
             self.currentWindow = self.tagwin
@@ -190,6 +197,8 @@ class Main(object):
             self.scrn.SetFocus(WINDOW_FILES)
             self.filewin.SetCursorToCurrent()
 
+# Pressing  KEY_TOGGLE_MODE switches between the file window browsing the filesystem
+# or browsing the tagged files
     def SwitchMode(self):
         path = '/'
         obj = self.filewin.GetDir()
@@ -561,6 +570,3 @@ if __name__ == "__main__":
             f.close()
         else:
             print m.selectedFilenames
-    else:
-        f  = open(useTempFile, "w")
-        f.close()

@@ -1,0 +1,5 @@
+* Add 'cd' command for filesys mode
+* In filesys mode, might want some kind of filter
+* Handle window resize
+* Bug in removing tag from directory, the directory still gets saved
+* HOME and END key does not seem to work
