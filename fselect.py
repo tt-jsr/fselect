@@ -551,6 +551,10 @@ if __name__ == "__main__":
         if arg == "--browse":
             argc += 1
             startDir = sys.argv[argc]
+        if arg == "--help":
+            print "usage: fselect.py [--usefile tmpfile] [--config file] [--browse dir]"
+            print "       --usefile: Selected files are written to the specified file"
+            exit(0)
         argc += 1
 
     if os.path.isdir(configDir) == False:
